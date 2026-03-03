@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useUIStore } from '../store/uiStore'
+import { useWindowManagerStore } from '../store/windowManagerStore'
 import { useConnectionStore } from '../store/connectionStore'
 import { useConnection } from '../hooks/useConnection'
 import StatusDot from '../ui/StatusDot'
@@ -12,7 +13,8 @@ const SESSION_START = new Date().toLocaleTimeString('en-GB', {
 })
 
 export default function TopBar() {
-  const { sidebarOpen, toggleSidebar, canvasMode, toggleCanvasMode } = useUIStore()
+  const { sidebarOpen, toggleSidebar } = useUIStore()
+  const { canvasMode, toggleCanvasMode, activePreset } = useWindowManagerStore()
   const status = useConnectionStore((s) => s.status)
 
   // Start polling the context store
@@ -38,8 +40,8 @@ export default function TopBar() {
           label={canvasMode === 'free' ? 'FREE' : 'DASHBOARD'}
           variant={canvasMode === 'dashboard' ? 'active' : 'dim'}
         />
-        {canvasMode === 'dashboard' && (
-          <span className="top-bar__layout-name">INTELLIGENCE VIEW</span>
+        {canvasMode === 'dashboard' && activePreset && (
+          <span className="top-bar__layout-name">{activePreset.label}</span>
         )}
       </div>
 
