@@ -1,73 +1,97 @@
-# React + TypeScript + Vite
+# Kortana GUI
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern, modular desktop application interface for the Kortana intelligence platform. Built with React, TypeScript, and Vite, this project provides a unified workspace for managing multiple data visualization and interaction panels.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Multi-Panel Workspace**: Dynamically manage multiple panel types in a flexible layout
+  - Context Graph - Visualize relationships and context
+  - Intelligence Map - Interactive mapping with MapLibre GL
+  - Chat - Real-time communication interface
+  - Log Stream - Live event monitoring and logging
+  - Markdown - Rich text document rendering
+  - Trading - Data-driven trading interface
+  - Comms - Communication management
+  - Terminal - Command execution and output
 
-## React Compiler
+- **Dual Canvas Modes**: Switch between free-form canvas layout and structured dashboard
+- **Command Palette**: Quick access to commands with Cmd+K (Ctrl+K on Windows/Linux)
+- **Real-time Connection Monitoring**: Health checks with the backend Kortana API server
+- **Responsive Layout**: Tailwind CSS styling with dynamic window management
+- **State Management**: Zustand for efficient, scalable state management
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Tech Stack
 
-## Expanding the ESLint configuration
+- **Frontend**: React 19, TypeScript 5.9
+- **Build Tool**: Vite 7
+- **Styling**: Tailwind CSS 4
+- **State Management**: Zustand 5
+- **Visualization**: D3.js 7, MapLibre GL 5
+- **Markdown**: Marked 17
+- **Linting**: ESLint 9 with TypeScript support
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Getting Started
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Prerequisites
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- Node.js 18+ (recommended)
+- npm or your preferred package manager
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Installation
+
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Development
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run dev
 ```
+
+The application will start at `http://localhost:5173` with hot module replacement enabled.
+
+### Building
+
+```bash
+npm run build
+```
+
+### Preview Production Build
+
+```bash
+npm run preview
+```
+
+### Linting
+
+```bash
+npm run lint
+```
+
+## Project Structure
+
+```
+src/
+├── canvas/          # Canvas modes (dashboard and free-form)
+├── hooks/           # Custom React hooks (connection management)
+├── layouts/         # Layout presets and configurations
+├── lib/             # Utilities and API clients
+├── panels/          # Panel components and registry
+├── sidebar/         # Chat sidebar and messaging UI
+├── store/           # Zustand state stores
+├── styles/          # Global CSS and styling
+├── types/           # TypeScript type definitions
+└── ui/              # Reusable UI components
+```
+
+## Configuration
+
+The application connects to a Kortana API server running on `http://localhost:4000`. Health checks are performed every 10 seconds to monitor connection status.
+
+## Future Enhancements
+
+- React Compiler integration for performance optimization
+- Enhanced type-aware ESLint rules
+- Additional panel types and visualizations
+- Collaborative workspace features

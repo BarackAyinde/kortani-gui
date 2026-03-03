@@ -3,6 +3,7 @@ import { useUIStore } from '../store/uiStore'
 import { useWindowManagerStore } from '../store/windowManagerStore'
 import { useConnectionStore } from '../store/connectionStore'
 import { useConnection } from '../hooks/useConnection'
+import { LAYOUT_PRESETS } from '../layouts/LAYOUT_PRESETS'
 import StatusDot from '../ui/StatusDot'
 import Badge from '../ui/Badge'
 
@@ -14,23 +15,25 @@ const SESSION_START = new Date().toLocaleTimeString('en-GB', {
 
 export default function TopBar() {
   const { sidebarOpen, toggleSidebar } = useUIStore()
-  const { canvasMode, toggleCanvasMode, activePreset } = useWindowManagerStore()
+  const { canvasMode, activePreset, setActivePreset } = useWindowManagerStore()
   const status = useConnectionStore((s) => s.status)
 
   // Start polling the context store
   useConnection()
 
-  // Cmd+Shift+D → toggle canvas mode
+  // Cmd+Shift+K → toggle canvas mode (getState avoids stale closure)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'D') {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'K') {
         e.preventDefault()
-        toggleCanvasMode()
+        useWindowManagerStore.getState().toggleCanvasMode()
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [toggleCanvasMode])
+  }, [])
+
+  const presetIdx = LAYOUT_PRESETS.findIndex((p) => p.id === activePreset?.id)
 
   return (
     <header className="top-bar">
@@ -41,7 +44,25 @@ export default function TopBar() {
           variant={canvasMode === 'dashboard' ? 'active' : 'dim'}
         />
         {canvasMode === 'dashboard' && activePreset && (
-          <span className="top-bar__layout-name">{activePreset.label}</span>
+          <>
+            <button
+              className="icon-btn"
+              onClick={() => setActivePreset(LAYOUT_PRESETS[presetIdx - 1])}
+              disabled={presetIdx <= 0}
+              title="Previous layout"
+            >
+              ◂
+            </button>
+            <span key={activePreset.id} className="top-bar__layout-name">{activePreset.label}</span>
+            <button
+              className="icon-btn"
+              onClick={() => setActivePreset(LAYOUT_PRESETS[presetIdx + 1])}
+              disabled={presetIdx >= LAYOUT_PRESETS.length - 1}
+              title="Next layout"
+            >
+              ▸
+            </button>
+          </>
         )}
       </div>
 

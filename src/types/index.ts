@@ -6,6 +6,7 @@ export type PanelType =
   | 'markdown'
   | 'trading'
   | 'comms'
+  | 'terminal'
 
 export interface PanelInstance {
   id: string

@@ -1,32 +1,39 @@
 import { useWindowManagerStore } from '../store/windowManagerStore'
+import { PANEL_REGISTRY } from '../panels/PANEL_REGISTRY'
 import CanvasWindow from './CanvasWindow'
+import type { PanelInstance } from '../types'
+
+function PanelContent({ panel }: { panel: PanelInstance }) {
+  const def = PANEL_REGISTRY[panel.type]
+  if (def.component) {
+    const Component = def.component
+    return <Component />
+  }
+  return (
+    <div className="canvas-panel-placeholder">
+      <span>{panel.type}</span>
+    </div>
+  )
+}
 
 export default function CanvasZone() {
-  const { panels, spawnPanel } = useWindowManagerStore()
+  const { panels } = useWindowManagerStore()
   const maxZ = panels.reduce((m, p) => Math.max(m, p.zIndex), 0)
 
   return (
     <div className="canvas-zone" style={{ position: 'relative' }}>
       {panels.length === 0 && (
-        <span className="canvas-zone__label">CANVAS</span>
+        <div className="canvas-zone__empty">
+          <span className="canvas-zone__hint">⌘K · spawn panel</span>
+          <span className="canvas-zone__hint">⌘⇧K · dashboard</span>
+        </div>
       )}
 
       {panels.map((panel) => (
         <CanvasWindow key={panel.id} panel={panel} focused={panel.zIndex === maxZ}>
-          {/* Panel content mounts in S-11/S-12 */}
-          <div className="canvas-panel-placeholder">
-            <span>{panel.type}</span>
-          </div>
+          <PanelContent panel={panel} />
         </CanvasWindow>
       ))}
-
-      {/* Temporary spawn button — replaced by Cmd+K in S-12 */}
-      <button
-        className="canvas-spawn-btn"
-        onClick={() => spawnPanel('context')}
-      >
-        + panel
-      </button>
     </div>
   )
 }

@@ -1,11 +1,13 @@
 import { create } from 'zustand'
 import type { PanelInstance, PanelType, CanvasMode, LayoutPreset } from '../types'
 import { PANEL_REGISTRY } from '../panels/PANEL_REGISTRY'
+import { LAYOUT_PRESETS } from '../layouts/LAYOUT_PRESETS'
 
 const BASE_X = 80
 const BASE_Y = 80
 const CASCADE_OFFSET = 30
 const BASE_Z = 10
+const CANVAS_KEY = 'kortana.canvas'
 
 function generateId(type: PanelType): string {
   return `${type}-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`
@@ -13,6 +15,36 @@ function generateId(type: PanelType): string {
 
 function maxZIndex(panels: PanelInstance[]): number {
   return panels.reduce((max, p) => Math.max(max, p.zIndex), BASE_Z)
+}
+
+interface PersistedCanvas {
+  panels: PanelInstance[]
+  canvasMode: CanvasMode
+  presetId: string | null
+}
+
+interface InitialState {
+  panels: PanelInstance[]
+  canvasMode: CanvasMode
+  activePreset: LayoutPreset | null
+}
+
+function loadCanvasState(): InitialState {
+  try {
+    const raw = localStorage.getItem(CANVAS_KEY)
+    if (!raw) return { panels: [], canvasMode: 'free', activePreset: null }
+    const data = JSON.parse(raw) as PersistedCanvas
+    const activePreset = data.presetId
+      ? (LAYOUT_PRESETS.find((p) => p.id === data.presetId) ?? null)
+      : null
+    return {
+      panels: Array.isArray(data.panels) ? data.panels : [],
+      canvasMode: data.canvasMode === 'dashboard' ? 'dashboard' : 'free',
+      activePreset,
+    }
+  } catch {
+    return { panels: [], canvasMode: 'free', activePreset: null }
+  }
 }
 
 interface WindowManagerState {
@@ -34,10 +66,12 @@ interface WindowManagerState {
   setActivePreset: (preset: LayoutPreset | null) => void
 }
 
+const initial = loadCanvasState()
+
 export const useWindowManagerStore = create<WindowManagerState>((set, get) => ({
-  panels: [],
-  canvasMode: 'free',
-  activePreset: null,
+  panels: initial.panels,
+  canvasMode: initial.canvasMode,
+  activePreset: initial.activePreset,
 
   spawnPanel: (type, props = {}, position) => {
     const { panels } = get()
@@ -95,9 +129,28 @@ export const useWindowManagerStore = create<WindowManagerState>((set, get) => ({
     })),
 
   toggleCanvasMode: () =>
-    set((state) => ({
-      canvasMode: state.canvasMode === 'free' ? 'dashboard' : 'free',
-    })),
+    set((state) => {
+      if (state.canvasMode === 'free') {
+        return { canvasMode: 'dashboard', activePreset: LAYOUT_PRESETS[0] }
+      }
+      return { canvasMode: 'free', activePreset: null }
+    }),
 
   setActivePreset: (preset) => set({ activePreset: preset }),
 }))
+
+// Persist canvas state to localStorage — debounced 500ms
+let persistTimer: ReturnType<typeof setTimeout> | null = null
+useWindowManagerStore.subscribe((state) => {
+  if (persistTimer) clearTimeout(persistTimer)
+  persistTimer = setTimeout(() => {
+    try {
+      const payload: PersistedCanvas = {
+        panels: state.panels,
+        canvasMode: state.canvasMode,
+        presetId: state.activePreset?.id ?? null,
+      }
+      localStorage.setItem(CANVAS_KEY, JSON.stringify(payload))
+    } catch { /* storage full */ }
+  }, 500)
+})
