@@ -72,3 +72,103 @@ input, textarea, button, select, code, pre {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-ghost);
 }
+
+/* ─── App shell ─────────────────────────────────────────────────────────────── */
+.app-shell {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-void);
+  overflow: hidden;
+}
+
+/* Placeholder top bar — replaced in S-04 */
+.top-bar-placeholder {
+  height: 40px;
+  flex-shrink: 0;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+}
+
+.top-bar-placeholder__label {
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  color: var(--text-ghost);
+  text-transform: uppercase;
+}
+
+.top-bar-placeholder__toggle {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  padding: 3px 8px;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.top-bar-placeholder__toggle:hover {
+  border-color: var(--border-bright);
+  color: var(--text-primary);
+}
+
+/* ─── Workspace ──────────────────────────────────────────────────────────────── */
+.workspace {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* ─── Canvas zone ────────────────────────────────────────────────────────────── */
+.canvas-zone {
+  flex: 1;
+  background: var(--bg-base);
+  border-right: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.canvas-zone__label {
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  color: var(--text-ghost);
+  text-transform: uppercase;
+}
+
+/* ─── Chat sidebar ───────────────────────────────────────────────────────────── */
+.chat-sidebar {
+  width: 360px;
+  flex-shrink: 0;
+  background: var(--bg-surface);
+  overflow: hidden;
+  transition: width 200ms ease;
+}
+
+.chat-sidebar[data-open='false'] {
+  width: 0;
+}
+
+.chat-sidebar__inner {
+  width: 360px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-sidebar__label {
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  color: var(--text-ghost);
+  text-transform: uppercase;
+}
