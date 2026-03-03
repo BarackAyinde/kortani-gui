@@ -207,6 +207,172 @@ input, textarea, button, select, code, pre {
   min-width: 0;
 }
 
+/* ─── Canvas window ──────────────────────────────────────────────────────────── */
+.canvas-window {
+  position: absolute;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: transform 120ms ease-out, opacity 120ms ease-out;
+  user-select: none;
+}
+
+.canvas-window--spawning {
+  transform: scale(0.95);
+  opacity: 0;
+}
+
+.canvas-window--open {
+  transform: scale(1);
+  opacity: 1;
+}
+
+.canvas-window--closing {
+  transform: scale(0.95);
+  opacity: 0;
+  transition: transform 80ms ease-in, opacity 80ms ease-in;
+}
+
+.canvas-window[data-focused='true'] {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 1px var(--accent-blue);
+}
+
+.canvas-window__titlebar {
+  height: 32px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px 0 10px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+  cursor: grab;
+}
+
+.canvas-window__titlebar:active {
+  cursor: grabbing;
+}
+
+.canvas-window__title-left {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.canvas-window__icon {
+  font-size: 11px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.canvas-window__label {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.canvas-window__title-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.canvas-window__btn {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--text-ghost);
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  transition: border-color 100ms ease, color 100ms ease;
+}
+
+.canvas-window__btn:hover {
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+.canvas-window__btn--close:hover {
+  border-color: var(--accent-red);
+  color: var(--accent-red);
+}
+
+.canvas-window__content {
+  flex: 1;
+  overflow: auto;
+  user-select: text;
+}
+
+.canvas-window__resize {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  cursor: nwse-resize;
+}
+
+.canvas-window__resize::after {
+  content: '';
+  position: absolute;
+  bottom: 3px;
+  right: 3px;
+  width: 5px;
+  height: 5px;
+  border-right: 1px solid var(--border-bright);
+  border-bottom: 1px solid var(--border-bright);
+}
+
+/* ─── Canvas panel placeholder ───────────────────────────────────────────────── */
+.canvas-panel-placeholder {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.canvas-panel-placeholder span {
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--text-ghost);
+  text-transform: uppercase;
+}
+
+/* ─── Temporary spawn button ─────────────────────────────────────────────────── */
+.canvas-spawn-btn {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-ghost);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  padding: 4px 10px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: border-color 120ms ease, color 120ms ease;
+}
+
+.canvas-spawn-btn:hover {
+  border-color: var(--border-bright);
+  color: var(--text-primary);
+}
+
 .canvas-zone__label {
   font-size: 10px;
   letter-spacing: 0.3em;
