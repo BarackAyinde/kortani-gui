@@ -1,22 +1,43 @@
 import { useRef, useState } from 'react'
 import { useChatStore } from '../store/chatStore'
+import { streamMessage, buildSystemPrompt } from '../lib/kortanaApi'
+import type { ApiMessage } from '../lib/kortanaApi'
 
 export default function MessageInput() {
   const [value, setValue] = useState('')
-  const { addMessage, isStreaming } = useChatStore()
+  const { messages, addMessage, appendToLast, setStreaming, isStreaming } = useChatStore()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const canSend = value.trim().length > 0 && !isStreaming
 
-  const send = () => {
+  const send = async () => {
     const content = value.trim()
     if (!content || isStreaming) return
+
+    // 1. Add user message, clear input
     addMessage({ role: 'user', content })
     setValue('')
-    // Reset textarea height
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto'
-    }
+    if (textareaRef.current) textareaRef.current.style.height = 'auto'
+
+    // 2. Seed empty assistant message, start streaming
+    addMessage({ role: 'assistant', content: '' })
+    setStreaming(true)
+
+    // 3. Build history for the API (all messages + the new user one)
+    const history: ApiMessage[] = [
+      ...messages.map((m) => ({ role: m.role, content: m.content })),
+      { role: 'user', content },
+    ]
+    const systemPrompt = buildSystemPrompt() // S-08 will inject context here
+
+    await streamMessage(history, systemPrompt, {
+      onChunk: (chunk) => appendToLast(chunk),
+      onDone: () => setStreaming(false),
+      onError: (err) => {
+        appendToLast(`\n\n[Error: ${err.message}]`)
+        setStreaming(false)
+      },
+    })
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
