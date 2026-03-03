@@ -231,13 +231,95 @@ input, textarea, button, select, code, pre {
   width: 360px;
   height: 100%;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-.chat-sidebar__label {
-  font-size: 10px;
-  letter-spacing: 0.3em;
+.chat-sidebar__header {
+  height: 36px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.chat-sidebar__title {
+  font-size: 9px;
+  letter-spacing: 0.25em;
   color: var(--text-ghost);
   text-transform: uppercase;
+}
+
+/* ─── Message list ───────────────────────────────────────────────────────────── */
+.message-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 12px 0;
+}
+
+/* ─── Message bubble ─────────────────────────────────────────────────────────── */
+.msg {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 16px;
+}
+
+.msg--user {
+  align-items: flex-end;
+}
+
+.msg--user .msg__bubble {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  padding: 7px 11px;
+  max-width: 88%;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.msg--user .msg__time {
+  font-size: 9px;
+  color: var(--text-ghost);
+  margin-top: 4px;
+  letter-spacing: 0.05em;
+}
+
+.msg--assistant {
+  border-left: 2px solid var(--accent-green);
+  padding-left: 14px;
+  margin-left: 16px;
+}
+
+.msg__header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.msg__sender {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--accent-green);
+  text-transform: uppercase;
+}
+
+.msg--assistant .msg__time {
+  font-size: 9px;
+  color: var(--text-ghost);
+  letter-spacing: 0.05em;
+}
+
+.msg__content {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  word-break: break-word;
 }
