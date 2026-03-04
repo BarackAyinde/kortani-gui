@@ -7,11 +7,12 @@ export interface Message {
   timestamp: Date
 }
 
-interface ChatState {
+export interface ChatState {
   messages: Message[]
   isStreaming: boolean
   addMessage: (msg: Pick<Message, 'role' | 'content'>) => void
   appendToLast: (chunk: string) => void
+  patchLast: (content: string) => void
   setStreaming: (streaming: boolean) => void
   clearMessages: () => void
 }
@@ -55,6 +56,16 @@ export const useChatStore = create<ChatState>((set) => ({
       const last = messages[messages.length - 1]
       if (!last || last.role !== 'assistant') return state
       messages[messages.length - 1] = { ...last, content: last.content + chunk }
+      return { messages }
+    }),
+
+  // Replace the content of the last assistant message (used to strip directives)
+  patchLast: (content) =>
+    set((state) => {
+      const messages = [...state.messages]
+      const last = messages[messages.length - 1]
+      if (!last || last.role !== 'assistant') return state
+      messages[messages.length - 1] = { ...last, content }
       return { messages }
     }),
 

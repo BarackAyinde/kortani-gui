@@ -1,12 +1,20 @@
+import type { ConnectionStatus } from '../store/connectionStore'
+
+const TITLES: Record<ConnectionStatus, string> = {
+  connected: 'Context store: online',
+  file:      'Context: CONTEXT.md (file fallback)',
+  offline:   'Context store: offline',
+}
+
 interface StatusDotProps {
-  status: 'connected' | 'offline'
+  status: ConnectionStatus
 }
 
 export default function StatusDot({ status }: StatusDotProps) {
   return (
     <span
       className={`status-dot status-dot--${status}`}
-      title={status === 'connected' ? 'Context store: online' : 'Context store: offline'}
+      title={TITLES[status]}
     />
   )
 }

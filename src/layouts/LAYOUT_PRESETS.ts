@@ -7,17 +7,17 @@ import type { LayoutPreset } from '../types'
 // └────────────────────┴─────────────┘
 
 // ─── MONITOR ──────────────────────────────────────────────────────────────────
-// Context (top-left) | Markdown (top-right) | Log strip (bottom full)
+// Context (top-left) | Delta (top-right) | Log strip (bottom full)
 // ┌──────────┬──────────┐
-// │ context  │ markdown │
+// │ context  │ delta    │
 // ├──────────┴──────────┤
 // │       log           │
 // └─────────────────────┘
 
 // ─── ANALYSIS ─────────────────────────────────────────────────────────────────
-// Context (left, full height) | Markdown (top-right) | Log (bottom-right)
+// Context (left, full height) | Delta (top-right) | Log (bottom-right)
 // ┌──────────┬──────────┐
-// │          │ markdown │
+// │          │ delta    │
 // │ context  ├──────────┤
 // │          │   log    │
 // └──────────┴──────────┘
@@ -37,25 +37,25 @@ export const LAYOUT_PRESETS: LayoutPreset[] = [
   {
     id: 'monitor',
     label: 'MONITOR',
-    gridTemplate: '"context markdown" "log log"',
+    gridTemplate: '"context delta" "log log"',
     gridCols: '1fr 1fr',
     gridRows: '3fr 1fr',
     slots: [
-      { area: 'context',  panelType: 'context' },
-      { area: 'markdown', panelType: 'markdown' },
-      { area: 'log',      panelType: 'log' },
+      { area: 'context', panelType: 'context' },
+      { area: 'delta',   panelType: 'delta' },
+      { area: 'log',     panelType: 'log' },
     ],
   },
   {
     id: 'analysis',
     label: 'ANALYSIS',
-    gridTemplate: '"context markdown" "context log"',
+    gridTemplate: '"context delta" "context log"',
     gridCols: '2fr 1fr',
     gridRows: '1fr 1fr',
     slots: [
-      { area: 'context',  panelType: 'context' },
-      { area: 'markdown', panelType: 'markdown' },
-      { area: 'log',      panelType: 'log' },
+      { area: 'context', panelType: 'context' },
+      { area: 'delta',   panelType: 'delta' },
+      { area: 'log',     panelType: 'log' },
     ],
   },
   // ─── TRADING ────────────────────────────────────────────────────────────────

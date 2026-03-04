@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useUIStore } from '../store/uiStore'
 import { useWindowManagerStore } from '../store/windowManagerStore'
 import { useConnectionStore } from '../store/connectionStore'
@@ -7,30 +7,23 @@ import { LAYOUT_PRESETS } from '../layouts/LAYOUT_PRESETS'
 import StatusDot from '../ui/StatusDot'
 import Badge from '../ui/Badge'
 
-// Session start time — captured once at module load, never changes
-const SESSION_START = new Date().toLocaleTimeString('en-GB', {
-  hour: '2-digit',
-  minute: '2-digit',
-})
+function formatTime(d: Date): string {
+  return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+}
 
 export default function TopBar() {
   const { sidebarOpen, toggleSidebar } = useUIStore()
   const { canvasMode, activePreset, setActivePreset } = useWindowManagerStore()
   const status = useConnectionStore((s) => s.status)
+  const [time, setTime] = useState(() => formatTime(new Date()))
 
   // Start polling the context store
   useConnection()
 
-  // Cmd+Shift+K → toggle canvas mode (getState avoids stale closure)
+  // Tick the clock every second
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'K') {
-        e.preventDefault()
-        useWindowManagerStore.getState().toggleCanvasMode()
-      }
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
+    const interval = setInterval(() => setTime(formatTime(new Date())), 1000)
+    return () => clearInterval(interval)
   }, [])
 
   const presetIdx = LAYOUT_PRESETS.findIndex((p) => p.id === activePreset?.id)
@@ -68,7 +61,7 @@ export default function TopBar() {
 
       <div className="top-bar__right">
         <StatusDot status={status} />
-        <span className="top-bar__timestamp">{SESSION_START}</span>
+        <span className="top-bar__timestamp">{time}</span>
         <button
           className="icon-btn"
           onClick={toggleSidebar}

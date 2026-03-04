@@ -20,11 +20,24 @@ export function buildSystemPrompt(contextMarkdown = '', nodeCount = 0): string {
       ? `[CONTEXT GRAPH — ${nodeCount} nodes, exported ${timestamp}]\n${contextMarkdown}\n[END CONTEXT]`
       : '[CONTEXT GRAPH — not yet connected]\n[END CONTEXT]'
 
+  const layoutDirective = [
+    'You can control the GUI layout. When your response would benefit from a specific panel being',
+    'in focus, include a layout directive. Valid panel types: context, map, chat, log, delta,',
+    'trading, comms, terminal, browser.',
+    'Include it only when a layout change genuinely helps. Omit when no change is needed.',
+    'Format (include in your response, will be stripped before display):',
+    'KORTANA_LAYOUT',
+    '{"focus": "panel_type", "support": ["type1", "type2", "type3"], "reason": "brief reason"}',
+    'END_LAYOUT',
+  ].join('\n')
+
   return [
     'You are Kortana — a persistent AI collaborator embedded in Kortana GUI.',
     'You are not a general assistant. You operate Barack\'s ops centre.',
     'Your context store runs at localhost:4000.',
     'Barack is a Principal Data Engineer. Be direct, concrete, and production-quality.',
+    '',
+    layoutDirective,
     '',
     contextSection,
   ].join('\n')

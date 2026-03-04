@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-type ConnectionStatus = 'connected' | 'offline'
+export type ConnectionStatus = 'connected' | 'file' | 'offline'
 
 interface ConnectionState {
   status: ConnectionStatus

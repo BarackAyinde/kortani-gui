@@ -1,7 +1,8 @@
 import { create } from 'zustand'
-import type { PanelInstance, PanelType, CanvasMode, LayoutPreset } from '../types'
+import type { PanelInstance, PanelType, CanvasMode, LayoutPreset, LayoutDirective } from '../types'
 import { PANEL_REGISTRY } from '../panels/PANEL_REGISTRY'
 import { LAYOUT_PRESETS } from '../layouts/LAYOUT_PRESETS'
+import { useUIStore } from './uiStore'
 
 const BASE_X = 80
 const BASE_Y = 80
@@ -21,18 +22,20 @@ interface PersistedCanvas {
   panels: PanelInstance[]
   canvasMode: CanvasMode
   presetId: string | null
+  currentLayout: LayoutDirective | null
 }
 
 interface InitialState {
   panels: PanelInstance[]
   canvasMode: CanvasMode
   activePreset: LayoutPreset | null
+  currentLayout: LayoutDirective | null
 }
 
 function loadCanvasState(): InitialState {
   try {
     const raw = localStorage.getItem(CANVAS_KEY)
-    if (!raw) return { panels: [], canvasMode: 'free', activePreset: null }
+    if (!raw) return { panels: [], canvasMode: 'free', activePreset: null, currentLayout: null }
     const data = JSON.parse(raw) as PersistedCanvas
     const activePreset = data.presetId
       ? (LAYOUT_PRESETS.find((p) => p.id === data.presetId) ?? null)
@@ -41,16 +44,19 @@ function loadCanvasState(): InitialState {
       panels: Array.isArray(data.panels) ? data.panels : [],
       canvasMode: data.canvasMode === 'dashboard' ? 'dashboard' : 'free',
       activePreset,
+      currentLayout: data.currentLayout ?? null,
     }
   } catch {
-    return { panels: [], canvasMode: 'free', activePreset: null }
+    return { panels: [], canvasMode: 'free', activePreset: null, currentLayout: null }
   }
 }
 
-interface WindowManagerState {
+export interface WindowManagerState {
   panels: PanelInstance[]
   canvasMode: CanvasMode
   activePreset: LayoutPreset | null
+  currentLayout: LayoutDirective | null
+  lastFreePositions: Record<string, { x: number; y: number; w: number; h: number }>
 
   spawnPanel: (
     type: PanelType,
@@ -64,6 +70,7 @@ interface WindowManagerState {
   minimizePanel: (id: string) => void
   toggleCanvasMode: () => void
   setActivePreset: (preset: LayoutPreset | null) => void
+  applyLayoutDirective: (directive: LayoutDirective) => void
 }
 
 const initial = loadCanvasState()
@@ -72,6 +79,8 @@ export const useWindowManagerStore = create<WindowManagerState>((set, get) => ({
   panels: initial.panels,
   canvasMode: initial.canvasMode,
   activePreset: initial.activePreset,
+  currentLayout: initial.currentLayout,
+  lastFreePositions: {},
 
   spawnPanel: (type, props = {}, position) => {
     const { panels } = get()
@@ -94,10 +103,29 @@ export const useWindowManagerStore = create<WindowManagerState>((set, get) => ({
     }
 
     set((state) => ({ panels: [...state.panels, instance] }))
+
+    // Auto-collapse sidebar when chat panel is spawned as a canvas window
+    if (type === 'chat') {
+      useUIStore.getState().setSidebarOpen(false)
+    }
   },
 
-  closePanel: (id) =>
-    set((state) => ({ panels: state.panels.filter((p) => p.id !== id) })),
+  closePanel: (id) => {
+    set((state) => {
+      const closing = state.panels.find((p) => p.id === id)
+      const remaining = state.panels.filter((p) => p.id !== id)
+
+      // Re-expand sidebar if the last chat panel is closed
+      if (closing?.type === 'chat') {
+        const hasOtherChat = remaining.some((p) => p.type === 'chat')
+        if (!hasOtherChat) {
+          useUIStore.getState().setSidebarOpen(true)
+        }
+      }
+
+      return { panels: remaining }
+    })
+  },
 
   focusPanel: (id) =>
     set((state) => {
@@ -131,12 +159,19 @@ export const useWindowManagerStore = create<WindowManagerState>((set, get) => ({
   toggleCanvasMode: () =>
     set((state) => {
       if (state.canvasMode === 'free') {
-        return { canvasMode: 'dashboard', activePreset: LAYOUT_PRESETS[0] }
+        // Save current free positions before entering dashboard
+        const positions: WindowManagerState['lastFreePositions'] = {}
+        for (const p of state.panels) {
+          positions[p.type] = { x: p.x, y: p.y, w: p.width, h: p.height }
+        }
+        return { canvasMode: 'dashboard', activePreset: LAYOUT_PRESETS[0], lastFreePositions: positions }
       }
       return { canvasMode: 'free', activePreset: null }
     }),
 
   setActivePreset: (preset) => set({ activePreset: preset }),
+
+  applyLayoutDirective: (directive) => set({ currentLayout: directive, activePreset: null }),
 }))
 
 // Persist canvas state to localStorage — debounced 500ms
@@ -149,6 +184,7 @@ useWindowManagerStore.subscribe((state) => {
         panels: state.panels,
         canvasMode: state.canvasMode,
         presetId: state.activePreset?.id ?? null,
+        currentLayout: state.currentLayout,
       }
       localStorage.setItem(CANVAS_KEY, JSON.stringify(payload))
     } catch { /* storage full */ }

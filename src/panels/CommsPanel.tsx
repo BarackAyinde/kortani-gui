@@ -99,14 +99,28 @@ export default function CommsPanel() {
   return (
     <div className="comms-panel">
       <div className="comms-panel__header">
-        <span className="comms-panel__title">SIGNALS</span>
+        <span className="comms-panel__title">COMMS — AGENT NETWORK</span>
         {alertCount > 0 && (
           <span className="comms-panel__alert-count">{alertCount} alerts</span>
         )}
         <span className="comms-panel__total">{signals.length} entries</span>
       </div>
 
+      {/* Agent roster */}
+      <div className="comms-panel__roster">
+        <div className="comms-agent">
+          <span className="comms-agent__dot comms-agent__dot--offline" />
+          <span className="comms-agent__name">JARVIS</span>
+          <span className="comms-agent__status">OFFLINE — awaiting Rackstack</span>
+        </div>
+      </div>
+
+      {/* Signals feed */}
       <div className="comms-panel__body">
+        <div className="comms-panel__placeholder">
+          Agent-to-agent communication requires the Rackstack comms layer.
+          This panel will activate when Rackstack is running.
+        </div>
         {signals.map((s) => (
           <div key={s.id} className={`signal signal--${s.type}`}>
             <span className="signal__ts">{fmtTs(s.ts)}</span>
@@ -126,11 +140,13 @@ export default function CommsPanel() {
           onChange={onDraftChange}
           onKeyDown={onKeyDown}
           spellCheck={false}
+          disabled
+          title="Agent-to-agent comms not yet available"
         />
         <button
           className="comms-compose__send"
-          onClick={send}
-          disabled={!draft.trim()}
+          disabled
+          title="Agent-to-agent comms not yet available"
         >
           SEND
         </button>

@@ -2,20 +2,24 @@ import { useEffect, useRef, useState } from 'react'
 import { useChatStore } from '../store/chatStore'
 import { streamMessage, buildSystemPrompt } from '../lib/kortanaApi'
 import { getContextSnapshot } from '../lib/contextCache'
+import { parseLayoutDirective } from '../lib/parseLayoutDirective'
+import { useWindowManagerStore } from '../store/windowManagerStore'
 import type { ApiMessage } from '../lib/kortanaApi'
+
+type ContextStatus = 'api' | 'file' | 'offline' | null
 
 export default function MessageInput() {
   const [value, setValue] = useState('')
   const [nodeCount, setNodeCount] = useState<number | null>(null)
-  const [contextOffline, setContextOffline] = useState(false)
-  const { messages, addMessage, appendToLast, setStreaming, isStreaming } = useChatStore()
+  const [contextStatus, setContextStatus] = useState<ContextStatus>(null)
+  const { messages, addMessage, appendToLast, patchLast, setStreaming, isStreaming } = useChatStore()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // Fetch context on mount to populate the badge
   useEffect(() => {
     getContextSnapshot().then((snap) => {
       setNodeCount(snap.nodeCount)
-      setContextOffline(snap.error !== null)
+      setContextStatus(snap.error ? 'offline' : snap.source)
     })
   }, [])
 
@@ -37,7 +41,7 @@ export default function MessageInput() {
     // 3. Fetch context (30s cache) and build system prompt
     const snap = await getContextSnapshot()
     setNodeCount(snap.nodeCount)
-    setContextOffline(snap.error !== null)
+    setContextStatus(snap.error ? 'offline' : snap.source)
     const systemPrompt = buildSystemPrompt(snap.markdown, snap.nodeCount)
 
     // 4. Build message history for the API
@@ -48,7 +52,20 @@ export default function MessageInput() {
 
     await streamMessage(history, systemPrompt, {
       onChunk: (chunk) => appendToLast(chunk),
-      onDone: () => setStreaming(false),
+      onDone: () => {
+        setStreaming(false)
+        // Parse layout directive from completed assistant message
+        const lastMsg = useChatStore.getState().messages.at(-1)
+        if (lastMsg?.role === 'assistant') {
+          const { directive, cleanContent } = parseLayoutDirective(lastMsg.content)
+          if (directive) {
+            useWindowManagerStore.getState().applyLayoutDirective(directive)
+          }
+          if (cleanContent !== lastMsg.content) {
+            patchLast(cleanContent)
+          }
+        }
+      },
       onError: (err) => {
         appendToLast(`\n\n[Error: ${err.message}]`)
         setStreaming(false)
@@ -74,40 +91,42 @@ export default function MessageInput() {
   return (
     <div className="msg-input-wrap">
       <div className="msg-input-meta">
-        {contextOffline ? (
+        {contextStatus === 'offline' ? (
           <span className="msg-input-meta__offline">context offline</span>
+        ) : contextStatus === 'file' ? (
+          <span className="msg-input-meta__file">context file</span>
         ) : nodeCount !== null ? (
           <span className="msg-input-meta__badge">context: {nodeCount} nodes</span>
         ) : null}
       </div>
       <div className="msg-input">
-      <textarea
-        ref={textareaRef}
-        className="msg-input__textarea"
-        value={value}
-        onChange={handleChange}
-        onKeyDown={handleKeyDown}
-        placeholder={isStreaming ? '' : 'Message Kortana…'}
-        disabled={isStreaming}
-        rows={1}
-        aria-label="Message input"
-      />
-      {isStreaming ? (
-        <div className="msg-input__typing">
-          <span className="typing-dot" />
-          <span className="typing-dot" />
-          <span className="typing-dot" />
-        </div>
-      ) : (
-        <button
-          className="msg-input__send"
-          onClick={send}
-          disabled={!canSend}
-          aria-label="Send message"
-        >
-          ↵
-        </button>
-      )}
+        <textarea
+          ref={textareaRef}
+          className="msg-input__textarea"
+          value={value}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          placeholder={isStreaming ? '' : 'Message Kortana…'}
+          disabled={isStreaming}
+          rows={1}
+          aria-label="Message input"
+        />
+        {isStreaming ? (
+          <div className="msg-input__typing">
+            <span className="typing-dot" />
+            <span className="typing-dot" />
+            <span className="typing-dot" />
+          </div>
+        ) : (
+          <button
+            className="msg-input__send"
+            onClick={send}
+            disabled={!canSend}
+            aria-label="Send message"
+          >
+            ↵
+          </button>
+        )}
       </div>
     </div>
   )

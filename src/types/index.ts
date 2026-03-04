@@ -3,10 +3,11 @@ export type PanelType =
   | 'map'
   | 'chat'
   | 'log'
-  | 'markdown'
+  | 'delta'
   | 'trading'
   | 'comms'
   | 'terminal'
+  | 'browser'
 
 export interface PanelInstance {
   id: string
@@ -33,6 +34,12 @@ export interface LayoutPreset {
     panelType: PanelType
     defaultProps?: Record<string, unknown>
   }[]
+}
+
+export interface LayoutDirective {
+  focus: PanelType
+  support: PanelType[]
+  reason?: string
 }
 
 export interface GraphNode {

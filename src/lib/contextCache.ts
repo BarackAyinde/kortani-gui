@@ -1,10 +1,12 @@
 const NODES_URL = 'http://localhost:4000/nodes'
+const FILE_CONTEXT_URL = '/api/context'
 const CACHE_TTL_MS = 30_000
 
 interface ContextSnapshot {
   nodeCount: number
   markdown: string
   fetchedAt: number
+  source: 'api' | 'file' | null
   error: string | null
 }
 
@@ -45,25 +47,45 @@ export async function getContextSnapshot(): Promise<ContextSnapshot> {
 
   if (cache && now - cache.fetchedAt < CACHE_TTL_MS) return cache
 
+  // Tier 1: context store API
   try {
     const res = await fetch(NODES_URL)
-    if (!res.ok) throw new Error(`/nodes returned ${res.status}`)
-    const nodes: Record<string, unknown>[] = await res.json()
+    if (res.ok) {
+      const nodes: Record<string, unknown>[] = await res.json()
+      cache = {
+        nodeCount: nodes.length,
+        markdown: formatMarkdown(nodes),
+        fetchedAt: now,
+        source: 'api',
+        error: null,
+      }
+      return cache
+    }
+  } catch { /* fall through */ }
 
-    cache = {
-      nodeCount: nodes.length,
-      markdown: formatMarkdown(nodes),
-      fetchedAt: now,
-      error: null,
+  // Tier 2: local CONTEXT.md file via Vite dev server middleware
+  try {
+    const res = await fetch(FILE_CONTEXT_URL)
+    if (res.ok) {
+      const data = await res.json() as { content: string; source: string }
+      cache = {
+        nodeCount: 0,
+        markdown: data.content,
+        fetchedAt: now,
+        source: 'file',
+        error: null,
+      }
+      return cache
     }
-  } catch (err) {
-    cache = {
-      nodeCount: cache?.nodeCount ?? 0,
-      markdown: cache?.markdown ?? '',
-      fetchedAt: now,
-      error: String(err),
-    }
+  } catch { /* fall through */ }
+
+  // Both unavailable — keep stale cache if available
+  cache = {
+    nodeCount: cache?.nodeCount ?? 0,
+    markdown: cache?.markdown ?? '',
+    fetchedAt: now,
+    source: null,
+    error: 'Context store and file fallback both unavailable',
   }
-
   return cache
 }

@@ -1,6 +1,7 @@
 import { useWindowManagerStore } from '../store/windowManagerStore'
 import { PANEL_REGISTRY } from '../panels/PANEL_REGISTRY'
 import CanvasWindow from './CanvasWindow'
+import ActivePanelsButton from '../ui/ActivePanelsButton'
 import type { PanelInstance } from '../types'
 
 function PanelContent({ panel }: { panel: PanelInstance }) {
@@ -25,7 +26,7 @@ export default function CanvasZone() {
       {panels.length === 0 && (
         <div className="canvas-zone__empty">
           <span className="canvas-zone__hint">⌘K · spawn panel</span>
-          <span className="canvas-zone__hint">⌘⇧K · dashboard</span>
+          <span className="canvas-zone__hint">⌘⇧K · toggle dashboard / free</span>
         </div>
       )}
 
@@ -34,6 +35,8 @@ export default function CanvasZone() {
           <PanelContent panel={panel} />
         </CanvasWindow>
       ))}
+
+      <ActivePanelsButton />
     </div>
   )
 }

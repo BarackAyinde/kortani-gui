@@ -14,8 +14,12 @@ export default function App() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault()
+      if (!(e.metaKey || e.ctrlKey)) return
+      if (e.code !== 'KeyK') return
+      e.preventDefault()
+      if (e.shiftKey) {
+        useWindowManagerStore.getState().toggleCanvasMode()
+      } else if (useWindowManagerStore.getState().canvasMode === 'free') {
         useUIStore.getState().togglePalette()
       }
     }
