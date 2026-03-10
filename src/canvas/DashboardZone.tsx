@@ -55,13 +55,13 @@ const DashboardPanel = React.memo(function DashboardPanel({
 
 type StructA = { type: 'A'; left: string; right: string }
 type StructB = { type: 'B'; left: string; topRight: string; bottomRight: string }
-type StructC = { type: 'C'; topLeft: string; topRight: string; bottom: string }
+// Structure E: full-width top panel + three equal panels along the bottom
+type StructE = { type: 'E'; top: string; bottomLeft: string; bottomMid: string; bottomRight: string }
 
-const PRESET_STRUCTURES: Record<string, StructA | StructB | StructC> = {
-  intelligence: { type: 'A', left: 'context',  right: 'map' },
-  monitor:      { type: 'C', topLeft: 'context', topRight: 'delta', bottom: 'log' },
-  analysis:     { type: 'B', left: 'context', topRight: 'delta',  bottomRight: 'log' },
-  trading:      { type: 'B', left: 'trading',  topRight: 'comms',  bottomRight: 'log' },
+const PRESET_STRUCTURES: Record<string, StructA | StructB | StructE> = {
+  intelligence: { type: 'A', left: 'context', right: 'map' },
+  analysis:     { type: 'B', left: 'context', topRight: 'delta', bottomRight: 'log' },
+  trading:      { type: 'E', top: 'trading', bottomLeft: 'signal-intel', bottomMid: 'trade-engine', bottomRight: 'strategy-monitor' },
 }
 
 const clampRatio = (r: number) => Math.min(0.85, Math.max(0.15, r))
@@ -69,66 +69,117 @@ const clampRatio = (r: number) => Math.min(0.85, Math.max(0.15, r))
 function PresetDashboard({ preset }: { preset: LayoutPreset }) {
   const s = PRESET_STRUCTURES[preset.id]
 
-  // Derive initial ratios from the preset's fr values
   const colParts = preset.gridCols.split(' ').map(parseFloat)
   const rowParts = preset.gridRows.split(' ').map(parseFloat)
-  const initCol = colParts.length > 1 ? colParts[0] / (colParts[0] + colParts[1]) : 0.6
+  const initCol = colParts.length > 1 ? colParts[0] / (colParts[0] + colParts[1]) : 0.5
   const initRow = rowParts.length > 1 ? rowParts[0] / (rowParts[0] + rowParts[1]) : 0.6
 
   const [colRatio, setColRatio] = useState(initCol)
   const [rowRatio, setRowRatio] = useState(initRow)
 
-  // outerRef  — outer flex container (col measurement for A/B; row measurement for all)
-  // topRowRef — top-row flex container for C (col measurement + row primary)
-  // colPrimaryRef — first flex child to resize for col drag
-  // rowPrimaryRef — first flex child to resize for row drag (B only; C uses topRowRef)
-  const outerRef    = useRef<HTMLDivElement>(null)
-  const topRowRef   = useRef<HTMLDivElement>(null)
+  // E-layout: three bottom panels, two independent col splits
+  const [eColA, setEColA] = useState(0.333)  // left / mid split
+  const [eColB, setEColB] = useState(0.5)    // mid / right split (as fraction of remaining)
+
+  const outerRef      = useRef<HTMLDivElement>(null)
+  const topPanelRef   = useRef<HTMLDivElement>(null)
   const colPrimaryRef = useRef<HTMLDivElement>(null)
   const rowPrimaryRef = useRef<HTMLDivElement>(null)
+  const eLeftRef      = useRef<HTMLDivElement>(null)
+  const eMidRef       = useRef<HTMLDivElement>(null)
+  const bottomRowRef  = useRef<HTMLDivElement>(null)
 
   const onColDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
-    const measure  = s.type === 'C' ? topRowRef.current : outerRef.current
-    const primary  = colPrimaryRef.current
+    const measure = outerRef.current
+    const primary = colPrimaryRef.current
     if (!measure || !primary) return
-    const startX     = e.clientX
+    const startX = e.clientX
     const startRatio = colRatio
     const onMove = (ev: MouseEvent) => {
       const r = clampRatio(startRatio + (ev.clientX - startX) / measure.getBoundingClientRect().width)
       primary.style.flexBasis = `${r * 100}%`
     }
     const onUp = (ev: MouseEvent) => {
-      const r = clampRatio(startRatio + (ev.clientX - startX) / measure.getBoundingClientRect().width)
-      setColRatio(r)
+      setColRatio(clampRatio(startRatio + (ev.clientX - startX) / measure.getBoundingClientRect().width))
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
     }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
-  }, [colRatio, s.type])
+  }, [colRatio])
 
   const onRowDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
-    const measure  = outerRef.current
-    // B: resize the top-right panel; C: resize the whole top-row div
-    const primary  = s.type === 'C' ? topRowRef.current : rowPrimaryRef.current
+    const measure = outerRef.current
+    const primary = s.type === 'E' ? topPanelRef.current : rowPrimaryRef.current
     if (!measure || !primary) return
-    const startY     = e.clientY
+    const startY = e.clientY
     const startRatio = rowRatio
     const onMove = (ev: MouseEvent) => {
       const r = clampRatio(startRatio + (ev.clientY - startY) / measure.getBoundingClientRect().height)
       primary.style.flexBasis = `${r * 100}%`
     }
     const onUp = (ev: MouseEvent) => {
-      const r = clampRatio(startRatio + (ev.clientY - startY) / measure.getBoundingClientRect().height)
-      setRowRatio(r)
+      setRowRatio(clampRatio(startRatio + (ev.clientY - startY) / measure.getBoundingClientRect().height))
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
     }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
   }, [rowRatio, s.type])
+
+  // E-layout col resize: handle between left and mid
+  const onEColADown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    const row = bottomRowRef.current
+    const left = eLeftRef.current
+    if (!row || !left) return
+    const startX = e.clientX
+    const startA = eColA
+    const onMove = (ev: MouseEvent) => {
+      const r = clampRatio(startA + (ev.clientX - startX) / row.getBoundingClientRect().width)
+      left.style.flexBasis = `${r * 100}%`
+    }
+    const onUp = (ev: MouseEvent) => {
+      setEColA(clampRatio(startA + (ev.clientX - startX) / row.getBoundingClientRect().width))
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }, [eColA])
+
+  // E-layout col resize: handle between mid and right
+  const onEColBDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    const mid = eMidRef.current
+    if (!mid) return
+    const startX = e.clientX
+    const startB = eColB
+    // mid flex-basis is relative to the remaining space after left
+    const onMove = (ev: MouseEvent) => {
+      const row = bottomRowRef.current
+      if (!row) return
+      const totalW = row.getBoundingClientRect().width
+      const leftW = eColA * totalW
+      const remaining = totalW - leftW
+      const r = clampRatio(startB + (ev.clientX - startX) / remaining)
+      mid.style.flexBasis = `${r * 100}%`
+    }
+    const onUp = (ev: MouseEvent) => {
+      const row = bottomRowRef.current
+      if (!row) return
+      const totalW = row.getBoundingClientRect().width
+      const leftW = eColA * totalW
+      const remaining = totalW - leftW
+      setEColB(clampRatio(startB + (ev.clientX - startX) / remaining))
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }, [eColA, eColB])
 
   const panel = (area: string) => {
     const slot = preset.slots.find((sl) => sl.area === area)!
@@ -171,24 +222,25 @@ function PresetDashboard({ preset }: { preset: LayoutPreset }) {
     )
   }
 
-  // ── Structure C: [(topLeft | x-handle | topRight) / y-handle / bottom] ──────
+  // ── Structure E: top full-width / y-handle / (left | x | mid | x | right) ──
   return (
     <div ref={outerRef} className="dashboard-zone" style={{ flexDirection: 'column' }}>
-      <div
-        ref={topRowRef}
-        style={{ flexBasis: `${rowRatio * 100}%`, flexShrink: 0, minHeight: 0, display: 'flex' }}
-      >
-        <div ref={colPrimaryRef} style={{ flexBasis: `${colRatio * 100}%`, flexShrink: 0, minWidth: 0 }}>
-          {panel(s.topLeft)}
-        </div>
-        <div className="dash-resize-handle--inline dash-resize-handle--x" onMouseDown={onColDown} />
-        <div style={{ flex: '1 1 0', minWidth: 0 }}>
-          {panel(s.topRight)}
-        </div>
+      <div ref={topPanelRef} style={{ flexBasis: `${rowRatio * 100}%`, flexShrink: 0, minHeight: 0 }}>
+        {panel(s.top)}
       </div>
       <div className="dash-resize-handle--inline dash-resize-handle--y" onMouseDown={onRowDown} />
-      <div style={{ flex: '1 1 0', minHeight: 0 }}>
-        {panel(s.bottom)}
+      <div ref={bottomRowRef} style={{ flex: '1 1 0', minHeight: 0, display: 'flex' }}>
+        <div ref={eLeftRef} style={{ flexBasis: `${eColA * 100}%`, flexShrink: 0, minWidth: 0 }}>
+          {panel(s.bottomLeft)}
+        </div>
+        <div className="dash-resize-handle--inline dash-resize-handle--x" onMouseDown={onEColADown} />
+        <div ref={eMidRef} style={{ flexBasis: `${eColB * 100}%`, flexShrink: 0, minWidth: 0 }}>
+          {panel(s.bottomMid)}
+        </div>
+        <div className="dash-resize-handle--inline dash-resize-handle--x" onMouseDown={onEColBDown} />
+        <div style={{ flex: '1 1 0', minWidth: 0 }}>
+          {panel(s.bottomRight)}
+        </div>
       </div>
     </div>
   )

@@ -8,6 +8,9 @@ export type PanelType =
   | 'comms'
   | 'terminal'
   | 'browser'
+  | 'signal-intel'
+  | 'strategy-monitor'
+  | 'trade-engine'
 
 export interface PanelInstance {
   id: string
