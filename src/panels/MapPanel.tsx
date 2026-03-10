@@ -180,6 +180,67 @@ export default function MapPanel() {
       .catch(() => {})
   }, [intelStatus])
 
+  // Initial fetch on mount (bypasses intelStatus check)
+  useEffect(() => {
+    const initialFetch = async () => {
+      try {
+        console.log('[MapPanel] Starting initial data fetch from', INTEL_API)
+        
+        const fetchWithTimeout = (url: string, timeout = 30000) => {
+          return Promise.race([
+            fetch(url),
+            new Promise<Response>((_, reject) =>
+              setTimeout(() => reject(new Error(`Timeout after ${timeout}ms`)), timeout)
+            ),
+          ])
+        }
+        
+        console.log('[MapPanel] Fetching stories...')
+        const storiesRes = await fetchWithTimeout(`${INTEL_API}/stories?hours=${hours}&min_confidence=0.2&limit=500`)
+        console.log('[MapPanel] stories response:', storiesRes.status)
+        const s = await storiesRes.json()
+        console.log('[MapPanel] stories parsed:', s?.features?.length, 'features')
+        
+        console.log('[MapPanel] Fetching signals...')
+        const signalsRes = await fetchWithTimeout(`${INTEL_API}/signals?hours=${hours}&limit=500`)
+        console.log('[MapPanel] signals response:', signalsRes.status)
+        const sig = await signalsRes.json()
+        console.log('[MapPanel] signals parsed:', sig?.features?.length, 'features')
+        
+        console.log('[MapPanel] Fetching blindspots...')
+        const blindspotsRes = await fetchWithTimeout(`${INTEL_API}/blindspots`)
+        console.log('[MapPanel] blindspots response:', blindspotsRes.status)
+        const b = await blindspotsRes.json()
+        console.log('[MapPanel] blindspots parsed:', b?.blindspots?.length, 'items')
+        
+        console.log('[MapPanel] Fetching alerts...')
+        const alertsRes = await fetchWithTimeout(`${INTEL_API}/alerts`)
+        console.log('[MapPanel] alerts response:', alertsRes.status)
+        const a = await alertsRes.json()
+        console.log('[MapPanel] alerts parsed:', a?.alerts?.length, 'items')
+        
+        console.log('[MapPanel] All data received, updating state...')
+        if (s?.features) { setStories(s); setStoryCount(s.features.length) }
+        if (sig?.features) { setSignalsData(sig); setSignalCount(sig.features.length) }
+        if (a?.alerts) { setAlertsData(a.alerts); setAlertCount(a.meta?.count ?? 0) }
+        if (b?.blindspots) {
+          const features: GeoFeature[] = b.blindspots
+            .filter((bs: Record<string, any>) => bs.lat != null && bs.lon != null)
+            .map((bs: Record<string, any>) => ({
+              type: 'Feature',
+              geometry: { type: 'Point', coordinates: [bs.lon as number, bs.lat as number] },
+              properties: bs,
+            }))
+          setBlindspotsData({ type: 'FeatureCollection', features })
+        }
+        console.log('[MapPanel] State updated successfully')
+      } catch (e) { 
+        console.error('[MapPanel] Initial fetch error:', e)
+      }
+    }
+    initialFetch()
+  }, [hours])
+
   useEffect(() => {
     fetchStories(); fetchSignals(); fetchBlinspots(); fetchAlerts()
     const t1 = setInterval(fetchStories, 5 * 60_000)
@@ -227,6 +288,22 @@ export default function MapPanel() {
     if (!map) return
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const m = map as any
+
+    // Prevent infinite horizontal scroll by constraining movement to one world wrap
+    const constrain = () => {
+      const bounds = m.getBounds()
+      const center = m.getCenter()
+      
+      // If we've scrolled more than one world width, recenter
+      if (bounds.getWest() < -180 || bounds.getEast() > 180) {
+        let newLng = center.lng
+        while (newLng < -180) newLng += 360
+        while (newLng > 180) newLng -= 360
+        m.setCenter([newLng, center.lat])
+      }
+    }
+    
+    m.on('moveend', constrain)
 
     // ── Stories layer ──────────────────────────────────────────────────────────
     m.addSource('intel-stories', { type: 'geojson', data: EMPTY })
@@ -397,6 +474,11 @@ export default function MapPanel() {
                   SCORE {String(popup.props.score ?? '')}
                 </span>
               </div>
+              {popup.props.url && (
+                <a className="map-popup__link" href={String(popup.props.url)} target="_blank" rel="noreferrer">
+                  Read source story →
+                </a>
+              )}
             </>
           ) : popup.kind === 'signal' ? (
             <>

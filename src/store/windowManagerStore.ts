@@ -171,14 +171,26 @@ export const useWindowManagerStore = create<WindowManagerState>((set, get) => ({
 
   setActivePreset: (preset) => set({ activePreset: preset }),
 
-  applyLayoutDirective: (directive) =>
+  applyLayoutDirective: (directive) => {
+    // Close sidebar if chat is part of the dashboard layout
+    const chatInLayout =
+      directive.focus === 'chat' || directive.support.includes('chat')
+    if (chatInLayout) {
+      useUIStore.getState().setSidebarOpen(false)
+    }
     set((state) => ({
       currentLayout: directive,
       activePreset: null,
       // Auto-switch to dashboard so the user sees the layout immediately
       canvasMode: state.canvasMode === 'free' ? 'dashboard' : state.canvasMode,
-    })),
+    }))
+  },
 }))
+
+// Close sidebar on load if chat panels were persisted in free mode
+if (initial.panels.some((p) => p.type === 'chat')) {
+  useUIStore.getState().setSidebarOpen(false)
+}
 
 // Persist canvas state to localStorage — debounced 500ms
 let persistTimer: ReturnType<typeof setTimeout> | null = null

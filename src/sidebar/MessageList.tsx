@@ -1,12 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { useChatStore } from '../store/chatStore'
 import MessageBubble from './MessageBubble'
 
 export default function MessageList() {
   const messages = useChatStore((s) => s.messages)
   const isStreaming = useChatStore((s) => s.isStreaming)
-  const systemPrompt = useChatStore((s) => s.systemPrompt)
-  const [systemExpanded, setSystemExpanded] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   // Track whether user has scrolled up to read history
@@ -26,31 +24,23 @@ export default function MessageList() {
 
   return (
     <div ref={listRef} className="message-list" onScroll={handleScroll}>
-      {/* Collapsible [SYSTEM] block */}
-      <div className="chat-system">
-        <button
-          className="chat-system__toggle"
-          onClick={() => setSystemExpanded((v) => !v)}
-          aria-expanded={systemExpanded}
-        >
-          <span className="chat-system__arrow">{systemExpanded ? '▾' : '▸'}</span>
-          [SYSTEM]
-        </button>
-        {systemExpanded && (
-          <pre className="chat-system__body">
-            {systemPrompt || '(system prompt will appear after first message)'}
-          </pre>
-        )}
-      </div>
 
-      {messages.map((msg, i) => (
-        <MessageBubble
-          key={msg.id}
-          message={msg}
-          isStreaming={isStreaming}
-          isLast={i === messages.length - 1}
-        />
-      ))}
+      {messages.length === 0 ? (
+        <div className="chat-empty">
+          <div className="chat-empty__wordmark">KORTANA</div>
+          <p className="chat-empty__heading">What can I help with?</p>
+          <p className="chat-empty__sub">Context, intelligence, and execution — in one thread.</p>
+        </div>
+      ) : (
+        messages.map((msg, i) => (
+          <MessageBubble
+            key={msg.id}
+            message={msg}
+            isStreaming={isStreaming}
+            isLast={i === messages.length - 1}
+          />
+        ))
+      )}
       <div ref={bottomRef} />
     </div>
   )

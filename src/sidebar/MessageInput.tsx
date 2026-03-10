@@ -4,15 +4,56 @@ import { streamMessage, buildSystemPrompt } from '../lib/kortanaApi'
 import { getContextSnapshot } from '../lib/contextCache'
 import { parseLayoutDirective } from '../lib/parseLayoutDirective'
 import { useWindowManagerStore } from '../store/windowManagerStore'
+import { useSettingsStore } from '../store/settingsStore'
+import { useVoiceStore } from '../store/voiceStore'
+import { KORTANA_TOOLS } from '../lib/toolRegistry'
+import VoiceInput from './VoiceInput'
 import type { ApiMessage } from '../lib/kortanaApi'
 
 type ContextStatus = 'api' | 'file' | 'offline' | null
+
+// ─── Tools Dropdown ───────────────────────────────────────────────────────────
+
+function ToolsDropdown({ onClose }: { onClose: () => void }) {
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handle = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose()
+    }
+    document.addEventListener('mousedown', handle)
+    return () => document.removeEventListener('mousedown', handle)
+  }, [onClose])
+
+  return (
+    <div className="tools-dropdown" ref={ref}>
+      <div className="tools-dropdown__header">KORTANA TOOLS</div>
+      {KORTANA_TOOLS.map((tool) => (
+        <div key={tool.id} className="tools-dropdown__item" data-status={tool.status}>
+          <span className="tools-dropdown__icon">{tool.icon}</span>
+          <div className="tools-dropdown__info">
+            <span className="tools-dropdown__label">{tool.label}</span>
+            <span className="tools-dropdown__desc">{tool.description}</span>
+          </div>
+          {tool.status === 'stub' && (
+            <span className="tools-dropdown__stub">SOON</span>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ─── MessageInput ─────────────────────────────────────────────────────────────
 
 export default function MessageInput() {
   const [value, setValue] = useState('')
   const [nodeCount, setNodeCount] = useState<number | null>(null)
   const [contextStatus, setContextStatus] = useState<ContextStatus>(null)
+  const [toolsOpen, setToolsOpen] = useState(false)
   const { messages, addMessage, appendToLast, patchLast, setStreaming, isStreaming, setSystemPrompt } = useChatStore()
+  const { selectedModel } = useSettingsStore()
+  const { isVoiceActive, setSpeaking, chatterboxVoiceKey, selectedSpeakerId } = useVoiceStore()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // Fetch context on mount to populate the badge
@@ -25,8 +66,8 @@ export default function MessageInput() {
 
   const canSend = value.trim().length > 0 && !isStreaming
 
-  const send = async () => {
-    const content = value.trim()
+  const send = async (overrideContent?: string) => {
+    const content = (overrideContent ?? value).trim()
     if (!content || isStreaming) return
 
     // 1. Add user message, clear input
@@ -65,19 +106,34 @@ export default function MessageInput() {
           if (cleanContent !== lastMsg.content) {
             patchLast(cleanContent)
           }
+          // TTS — speak the final clean content when voice mode is active
+          if (isVoiceActive) {
+            const textToSpeak = (cleanContent !== lastMsg.content ? cleanContent : lastMsg.content)
+              .replace(/```[\s\S]*?```/g, '')   // strip code blocks
+              .replace(/`[^`]*`/g, '')           // strip inline code
+              .replace(/\[.*?\]\(.*?\)/g, '')    // strip markdown links
+              .replace(/[*_#>~]/g, '')           // strip markdown syntax
+              .trim()
+            if (textToSpeak.length > 0) {
+              setSpeaking(true)
+              import('../lib/chatterboxApi').then(({ speakText }) => {
+                return speakText({ text: textToSpeak.slice(0, 1000), voiceKey: chatterboxVoiceKey, speakerId: selectedSpeakerId })
+              }).catch(() => { /* TTS failures are non-fatal */ }).finally(() => setSpeaking(false))
+            }
+          }
         }
       },
       onError: (err) => {
         appendToLast(`\n\n[Error: ${err.message}]`)
         setStreaming(false)
       },
-    })
+    }, selectedModel)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      send()
+      void send()
     }
   }
 
@@ -103,36 +159,52 @@ export default function MessageInput() {
           <span className="msg-input-meta__live">◈ context injected{nodeCount !== null ? ` · ${nodeCount} nodes` : ''}</span>
         ) : null}
       </div>
-      <div className="msg-input">
-        <textarea
-          ref={textareaRef}
-          className="msg-input__textarea"
-          value={value}
-          onChange={handleChange}
-          onKeyDown={handleKeyDown}
-          placeholder={isStreaming ? '' : 'Message Kortana…'}
-          disabled={isStreaming}
-          rows={1}
-          aria-label="Message input"
-        />
-        {isStreaming ? (
-          <div className="msg-input__typing">
-            <span className="typing-dot" />
-            <span className="typing-dot" />
-            <span className="typing-dot" />
+
+      {isVoiceActive ? (
+        <VoiceInput onTranscript={(text) => void send(text)} disabled={isStreaming} />
+      ) : (
+        <div className="msg-input">
+          <div className="msg-input__tools-wrap">
+            <button
+              className="msg-input__tools-btn"
+              onClick={() => setToolsOpen((v) => !v)}
+              aria-label="Show available tools"
+              title="Available tools"
+              data-active={toolsOpen}
+            >
+              +
+            </button>
+            {toolsOpen && <ToolsDropdown onClose={() => setToolsOpen(false)} />}
           </div>
-        ) : (
-          <button
-            className="msg-input__send"
-            onClick={send}
-            disabled={!canSend}
-            aria-label="Send message"
-          >
-            ↵
-          </button>
-        )}
-      </div>
-      <div className="msg-input__hint">↵ send&nbsp;&nbsp;&nbsp;⇧↵ newline</div>
+          <textarea
+            ref={textareaRef}
+            className="msg-input__textarea"
+            value={value}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
+            placeholder={isStreaming ? '' : 'Message Kortana…'}
+            disabled={isStreaming}
+            rows={1}
+            aria-label="Message input"
+          />
+          {isStreaming ? (
+            <div className="msg-input__typing">
+              <span className="typing-dot" />
+              <span className="typing-dot" />
+              <span className="typing-dot" />
+            </div>
+          ) : (
+            <button
+              className="msg-input__send"
+              onClick={() => void send()}
+              disabled={!canSend}
+              aria-label="Send message"
+            >
+              ↵
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }

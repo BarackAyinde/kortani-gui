@@ -19,24 +19,8 @@ export interface ChatState {
   clearMessages: () => void
 }
 
-const SEED_MESSAGES: Message[] = [
-  {
-    id: 'seed-1',
-    role: 'user',
-    content: 'Phase 1 is complete. Context store is running at :4000.',
-    timestamp: new Date(),
-  },
-  {
-    id: 'seed-2',
-    role: 'assistant',
-    content:
-      'Confirmed. 16 nodes seeded from CONTEXT.md — all open Question nodes resolved. Ready for Phase 2.',
-    timestamp: new Date(),
-  },
-]
-
 export const useChatStore = create<ChatState>((set) => ({
-  messages: SEED_MESSAGES,
+  messages: [],
   isStreaming: false,
   systemPrompt: '',
 

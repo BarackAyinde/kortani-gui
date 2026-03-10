@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
 import { useUIStore } from '../store/uiStore'
 import { useWindowManagerStore } from '../store/windowManagerStore'
 import { useConnectionStore } from '../store/connectionStore'
 import { useConnection } from '../hooks/useConnection'
+import { useClock } from '../hooks/useClock'
 import { LAYOUT_PRESETS } from '../layouts/LAYOUT_PRESETS'
 import StatusDot from '../ui/StatusDot'
 import Badge from '../ui/Badge'
@@ -15,14 +15,9 @@ export default function TopBar() {
   const { sidebarOpen, toggleSidebar } = useUIStore()
   const { canvasMode, activePreset, currentLayout, setActivePreset, toggleCanvasMode } = useWindowManagerStore()
   const status = useConnectionStore((s) => s.status)
-  const [time, setTime] = useState(() => formatTime(new Date()))
+  const now = useClock()
 
   useConnection()
-
-  useEffect(() => {
-    const interval = setInterval(() => setTime(formatTime(new Date())), 1000)
-    return () => clearInterval(interval)
-  }, [])
 
   // Build the combined nav: "KORTANA" entry (if AI layout exists) + all presets
   const hasKortanaView = currentLayout !== null
@@ -90,7 +85,7 @@ export default function TopBar() {
 
       <div className="top-bar__right">
         <StatusDot status={status} />
-        <span className="top-bar__timestamp">{time}</span>
+        <span className="top-bar__timestamp">{formatTime(now)}</span>
         <button
           className="icon-btn top-bar__sidebar-toggle"
           onClick={toggleSidebar}
