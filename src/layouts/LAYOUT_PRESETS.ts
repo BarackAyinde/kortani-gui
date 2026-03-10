@@ -6,14 +6,6 @@ import type { LayoutPreset } from '../types'
 // │  context           │  map        │
 // └────────────────────┴─────────────┘
 
-// ─── MONITOR ──────────────────────────────────────────────────────────────────
-// Context (top-left) | Delta (top-right) | Log strip (bottom full)
-// ┌──────────┬──────────┐
-// │ context  │ delta    │
-// ├──────────┴──────────┤
-// │       log           │
-// └─────────────────────┘
-
 // ─── ANALYSIS ─────────────────────────────────────────────────────────────────
 // Context (left, full height) | Delta (top-right) | Log (bottom-right)
 // ┌──────────┬──────────┐
@@ -21,6 +13,15 @@ import type { LayoutPreset } from '../types'
 // │ context  ├──────────┤
 // │          │   log    │
 // └──────────┴──────────┘
+
+// ─── TRADING ──────────────────────────────────────────────────────────────────
+// Signal Intelligence (top-left) | Strategy Monitor (top-right)
+// Trade Engine (bottom-left)     | Market View (bottom-right)
+// ┌─────────────────┬──────────────────┐
+// │  signal-intel   │ strategy-monitor │
+// ├─────────────────┼──────────────────┤
+// │  trade-engine   │    trading       │
+// └─────────────────┴──────────────────┘
 
 export const LAYOUT_PRESETS: LayoutPreset[] = [
   {
@@ -35,18 +36,6 @@ export const LAYOUT_PRESETS: LayoutPreset[] = [
     ],
   },
   {
-    id: 'monitor',
-    label: 'MONITOR',
-    gridTemplate: '"context delta" "log log"',
-    gridCols: '1fr 1fr',
-    gridRows: '3fr 1fr',
-    slots: [
-      { area: 'context', panelType: 'context' },
-      { area: 'delta',   panelType: 'delta' },
-      { area: 'log',     panelType: 'log' },
-    ],
-  },
-  {
     id: 'analysis',
     label: 'ANALYSIS',
     gridTemplate: '"context delta" "context log"',
@@ -58,18 +47,17 @@ export const LAYOUT_PRESETS: LayoutPreset[] = [
       { area: 'log',     panelType: 'log' },
     ],
   },
-  // ─── TRADING ────────────────────────────────────────────────────────────────
-  // Trading (left, large) | Comms (top-right) | Log (bottom-right)
   {
     id: 'trading',
     label: 'TRADING',
-    gridTemplate: '"trading comms" "trading log"',
-    gridCols: '3fr 2fr',
-    gridRows: '3fr 1fr',
+    gridTemplate: '"trading" "signal-intel trade-engine strategy-monitor"',
+    gridCols: '1fr',
+    gridRows: '3fr 2fr',
     slots: [
-      { area: 'trading', panelType: 'trading' },
-      { area: 'comms',   panelType: 'comms' },
-      { area: 'log',     panelType: 'log' },
+      { area: 'trading',           panelType: 'trading' },
+      { area: 'signal-intel',      panelType: 'signal-intel' },
+      { area: 'trade-engine',      panelType: 'trade-engine' },
+      { area: 'strategy-monitor',  panelType: 'strategy-monitor' },
     ],
   },
 ]
